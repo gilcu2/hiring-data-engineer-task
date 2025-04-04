@@ -34,26 +34,6 @@ services:
         restart: true
 
   # -------------------------------------
-  # ClickHouse
-  # -------------------------------------
-  clickhouse:
-    image: clickhouse/clickhouse-server
-    container_name: ch_analytics
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-    ports:
-      - "8123:8123"
-      - "9000:9000"
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-    healthcheck:
-      test: [ "CMD", "clickhouse-client", "--query", "SELECT 1" ]
-      interval: 5s
-      retries: 5
-
-  # -------------------------------------
   # Flyway Migrations
   # -------------------------------------
   flyway:
@@ -68,6 +48,43 @@ services:
       - ./migrations/:/flyway/sql
     environment:
       FLYWAY_CONNECT_RETRIES: 10
+
+  # -------------------------------------
+  # ClickHouse
+  # -------------------------------------
+  clickhouse:
+    image: clickhouse/clickhouse-server
+    container_name: ch_analytics
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=12345
+    healthcheck:
+      test: [ "CMD", "clickhouse-client", "--query", "SELECT 1" ]
+      interval: 5s
+      retries: 5
+
+  tabix:
+    image: spoonest/clickhouse-tabix-web-client:latest
+    container_name: tabix
+    ports:
+      - "6060:80"
+    depends_on:
+      - clickhouse
+    restart: unless-stopped
+    environment:
+      - CH_NAME=clickhouse
+      - CH_HOST=http://localhost:8123
+      - CH_LOGIN=default
+      - CH_PASSWORD=12345
 
 volumes:
   postgres_data:
