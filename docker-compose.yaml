@@ -34,18 +34,18 @@ services:
         restart: true
 
   # -------------------------------------
-  # Flyway Migrations
+  # Postgres Migrations
   # -------------------------------------
-  flyway:
+  flyway-postgres:
     image: flyway/flyway
-    container_name: db_migrations
+    container_name: postgres_migrations
     depends_on:
       postgres:
         condition: service_healthy
         restart: true
-    command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -locations=filesystem:/flyway/sql migrate
+    command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -locations=filesystem:/flyway/postgres migrate
     volumes:
-      - ./migrations/:/flyway/sql
+      - ./migrations/postgres:/flyway/postgres
     environment:
       FLYWAY_CONNECT_RETRIES: 10
 
@@ -71,6 +71,22 @@ services:
       test: [ "CMD", "clickhouse-client", "--query", "SELECT 1" ]
       interval: 5s
       retries: 5
+
+  # -------------------------------------
+  # ClickHouse  Migrations
+  # -------------------------------------
+  flyway-clickhouse:
+    image: redgate/flyway
+    container_name: clickhouse_migrations
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+        restart: true
+    command: -url=jdbc:clickhouse://clickhouse:8123/default -user=default -password=12345 -locations=filesystem:/flyway/clickhouse migrate
+    volumes:
+      - ./migrations/clickhouse:/flyway/clickhouse
+    environment:
+      FLYWAY_CONNECT_RETRIES: 10
 
   tabix:
     image: spoonest/clickhouse-tabix-web-client:latest
