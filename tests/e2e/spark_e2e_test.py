@@ -1,12 +1,10 @@
+from pyspark.sql import SparkSession
+
 from bdd_helper import Given, When, Then, And
-from spark import create_spark
 
-def create_spark_test():
-    Given("app name")
-    app_name="test_spark"
 
-    When("create spark session")
-    spark = create_spark(app_name)
+def test_create_spark(spark:SparkSession):
+    Given("the spark session fixture")
 
-    Then("is ok")
-    assert spark.sparkContext.appName == app_name
+    Then("is expected")
+    assert spark.sparkContext.appName == "test_spark_session"
