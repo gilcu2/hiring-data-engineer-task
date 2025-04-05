@@ -75,16 +75,16 @@ services:
   # -------------------------------------
   # ClickHouse  Migrations
   # -------------------------------------
-  flyway-clickhouse:
-    image: flyway/flyway:latest
-    container_name: clickhouse_migrations
-    depends_on:
-      - clickhouse
-    volumes:
-      - ./migrations/clickhouse:/flyway/sql
-      - ./drivers:/flyway/drivers
-    entrypoint: >
-      sh -c "flyway -url=jdbc:clickhouse://clickhouse:8123/default -user=default -password=12345 -locations=filesystem:/flyway/sql -driver=com.clickhouse.jdbc.ClickHouseDriver migrate"
+#  flyway-clickhouse:
+#    image: flyway/flyway:latest
+#    container_name: clickhouse_migrations
+#    depends_on:
+#      - clickhouse
+#    volumes:
+#      - ./migrations/clickhouse:/flyway/sql
+#      - ./drivers:/flyway/drivers
+#    entrypoint: >
+#      sh -c "flyway -url=jdbc:clickhouse://clickhouse:8123/default -user=default -password=12345 -locations=filesystem:/flyway/sql -driver=com.clickhouse.jdbc.ClickHouseDriver migrate"
 
 #  clickhouse-migrations:
 #    image: shini4i/clickhouse-migrations
