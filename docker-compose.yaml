@@ -75,18 +75,15 @@ services:
   # -------------------------------------
   # ClickHouse  Migrations
   # -------------------------------------
-  flyway-clickhouse:
-    image: redgate/flyway
-    container_name: clickhouse_migrations
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-        restart: true
-    command: -url=jdbc:clickhouse://clickhouse:8123/default -user=default -password=12345 -locations=filesystem:/flyway/clickhouse migrate
-    volumes:
-      - ./migrations/clickhouse:/flyway/clickhouse
-    environment:
-      FLYWAY_CONNECT_RETRIES: 10
+#  clickhouse-migrations:
+#    image: shini4i/clickhouse-migrations
+#    container_name: ch-migrations
+#    volumes:
+#      - ./migrations/clickhouse:/migrations
+#      - ./migrations/clickhouse-migrations.yml:/app/clickhouse-migrations.yml
+#    depends_on:
+#      - clickhouse
+#    entrypoint: [ "clickhouse-migrations", "migrate" ]
 
   tabix:
     image: spoonest/clickhouse-tabix-web-client:latest

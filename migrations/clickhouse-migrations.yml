@@ -1,0 +1,5 @@
+url: http://clickhouse:8123
+username: default
+password: 12345
+database: default
+migrationsDir: /migrations
