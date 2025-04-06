@@ -3,22 +3,22 @@ CREATE TABLE clicks
     id UInt64,
     advertiser_id UInt32,
     campaign_id UInt32,
-    timestamp DateTime,
+    created_at DateTime,
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMMDD(timestamp)
-ORDER BY (campaign_id, toYYYYMMDD(timestamp));
+PARTITION BY toYYYYMMDD(created_at)
+ORDER BY (campaign_id, toYYYYMMDD(created_at));
 
 CREATE TABLE impressions
 (
     id UInt64,
     advertiser_id UInt32,
     campaign_id UInt32,
-    timestamp DateTime,
+    created_at DateTime,
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMMDD(timestamp)
-ORDER BY (campaign_id, toYYYYMMDD(timestamp));
+PARTITION BY toYYYYMMDD(created_at)
+ORDER BY (campaign_id, toYYYYMMDD(created_at));
 
 CREATE TABLE advertiser
 (

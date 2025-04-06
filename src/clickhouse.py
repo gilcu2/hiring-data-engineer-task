@@ -1,3 +1,4 @@
+from black import Sequence
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType
 import clickhouse_connect
@@ -37,7 +38,7 @@ class ClickHouse:
     def command(self, sql: str):
         self.client.command(sql)
 
-    def query(self, sql: str):
+    def query(self, sql: str) -> Sequence[Sequence]:
         r = self.client.query(sql)
         return r.result_set
 
@@ -45,7 +46,7 @@ class ClickHouse:
         self.client.command(f"CREATE TABLE {new_table_name} AS {source_table_name}")
 
     def drop_table(self, table_name: str):
-        self.client.command(f"DROP TABLE {table_name}")
+        self.client.command(f"DROP TABLE IF EXISTS {table_name} ")
 
     def swap_tables(self, table_name: str, new_table_name: str, old_table_name: str):
         self.client.command(f"RENAME TABLE {table_name} TO {old_table_name}, {new_table_name} TO {table_name}")
