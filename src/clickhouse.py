@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.types import StructType
 
 
 class ClickHouse:
@@ -19,7 +20,7 @@ class ClickHouse:
             .save()
         )
 
-    def read(self, query: str) -> DataFrame:
+    def read(self, query: str, schema: StructType) -> DataFrame:
         return (
             self.spark
             .read
@@ -27,6 +28,7 @@ class ClickHouse:
             .option("driver", "com.clickhouse.jdbc.ClickHouseDriver")
             .option("url", self.url)
             .option("query", query)
+            .schema(schema)
             .load()
         )
 
