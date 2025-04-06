@@ -21,8 +21,8 @@ def test_write_read(clickhouse: ClickHouse, spark: SparkSession):
     clickhouse.write(df, table_name)
 
     And("read it")
-    readed_df = clickhouse.read(query, schema)
+    read_df = clickhouse.read(query, schema)
 
     Then("is expected")
-    assertDataFrameEqual(readed_df, df)
+    assertDataFrameEqual(read_df, df)
 

@@ -7,7 +7,7 @@ CREATE TABLE clicks
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMMDD(timestamp)
-ORDER BY (timestamp, advertiser_id, campaign_id, id);
+ORDER BY (campaign_id, toYYYYMMDD(timestamp));
 
 CREATE TABLE impressions
 (
@@ -18,7 +18,7 @@ CREATE TABLE impressions
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMMDD(timestamp)
-ORDER BY (timestamp, advertiser_id, campaign_id, id);
+ORDER BY (campaign_id, toYYYYMMDD(timestamp));
 
 CREATE TABLE advertiser
 (
