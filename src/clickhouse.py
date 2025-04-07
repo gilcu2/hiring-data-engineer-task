@@ -1,16 +1,21 @@
 from black import Sequence
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.types import StructType
+from urllib.parse import urlparse, parse_qs
 import clickhouse_connect
 
 
 class ClickHouse:
-    def __init__(self, spark: SparkSession, host: str, port: int,
-                 user: str, password: str, database: str):
-        self.url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
+    def __init__(self, spark: SparkSession, url: str):
+        self.url = f"{url}&jdbcCompliant=false"
         self.spark = spark
-        self.client = clickhouse_connect.get_client(host=host, port=port,
-                                                    username=user, password=password)
+        parsed = urlparse(url.replace("jdbc:", "", 1))
+        parsed_query=parse_qs(parsed.query)
+        self.client = clickhouse_connect.get_client(
+            host=parsed.hostname or 'localhost',
+            port=parsed.port or 8123,
+            username=parsed_query.get('user',['default'])[0],
+            password=parsed_query.get('password',['12345'])[0]
+        )
 
     def write(self, df: DataFrame, table_name: str):
         return (
@@ -18,6 +23,8 @@ class ClickHouse:
             .write
             .format("jdbc")
             .option("driver", "com.clickhouse.jdbc.ClickHouseDriver")
+            .option("autocommit", "true")
+            .option("batchsize", 10000)
             .option("url", self.url)
             .option("dbtable", table_name)
             .mode("append")

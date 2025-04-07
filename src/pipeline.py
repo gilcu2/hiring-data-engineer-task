@@ -1,9 +1,12 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from postgres import Postgres
 from clickhouse import ClickHouse
-from pyspark.sql.functions import from_utc_timestamp,col
+from pyspark.sql.functions import from_utc_timestamp, col
+import typer
+from typing_extensions import Annotated
+from spark import create_spark
 
 
 def update_entity(pg_table_name: str, ch_table_name: str,
@@ -40,9 +43,51 @@ def update_kpi(kpi_table_name: str, campaign_table_name: str, ch_table_name: str
     return df.count()
 
 
-def update_cliphouse(from_date: date, to_date: date, postgres: Postgres, clickhouse: ClickHouse):
-    pg_advertiser_df = postgres.read()
+def update_clickhouse(
+        from_date: date, to_date: date,
+        postgres: Postgres, clickhouse: ClickHouse,
+        ch_suffix: str = "", limit: Optional[int] = None
+) -> list[int]:
+    n_rows_advertiser = update_entity("advertiser", f"advertiser{ch_suffix}",
+                                      postgres, clickhouse, limit)
+    n_rows_campaign = update_entity("campaign", f"campaign{ch_suffix}",
+                                    postgres, clickhouse, limit)
+    n_rows_clicks = update_kpi("clicks", "campaign", f"clicks{ch_suffix}",
+                               from_date, to_date, postgres, clickhouse, limit)
+    n_rows_impressions = update_kpi("impressions", "campaign", f"impressions{ch_suffix}",
+                                    from_date, to_date, postgres, clickhouse, limit)
+    return [n_rows_advertiser, n_rows_campaign, n_rows_clicks, n_rows_impressions]
+
+
+def main(
+        from_date: Annotated[datetime, typer.Argument(formats=["%Y-%m-%d"])],
+        to_date: Annotated[datetime, typer.Argument(formats=["%Y-%m-%d"])],
+        pg_url: str = "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres",
+        ch_url: str = "jdbc:ch://localhost:8123/default?user=default&password=12345",
+        limit: Optional[int] = None,
+        ch_suffix: str = ""
+
+) -> list[int]:
+    """
+        Update the data in ClickHouse from PostgreSQL.
+    """
+
+    spark = create_spark("postgres to clickhouse update pipeline")
+    postgres = Postgres(spark, pg_url)
+    clickhouse = ClickHouse(spark, ch_url)
+
+    tables = ["advertiser", "campaign", "clicks", "impressions"]
+    for table in tables:
+        clickhouse.create_table_as(f"{table}{ch_suffix}", table)
+
+    updated_rows=update_clickhouse(from_date.date(), to_date.date(), postgres, clickhouse, ch_suffix, limit)
+
+    print("Updated rows")
+    for i in range(4):
+        print(f"{tables[i]}: {updated_rows[i]}")
+
+    return updated_rows
 
 
 if __name__ == "__main__":
-    print("Hello, World!")
+    typer.run(main)

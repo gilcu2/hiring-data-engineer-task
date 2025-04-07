@@ -2,11 +2,9 @@ from pyspark.sql import SparkSession, DataFrame
 
 
 class Postgres:
-    def __init__(self, spark: SparkSession, host: str, port: str,
-                 user: str, password: str, database: str):
-        self.url = f"jdbc:postgresql://{host}:{port}/{database}?user={user}&password={password}"
+    def __init__(self, spark: SparkSession, url: str):
+        self.url = url
         self.spark = spark
-
 
     def read(self, query: str) -> DataFrame:
         return (
