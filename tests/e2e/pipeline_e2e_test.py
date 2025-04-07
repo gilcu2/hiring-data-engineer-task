@@ -4,7 +4,7 @@ from postgres import Postgres
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 from bdd_helper import Given, When, Then, And
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def test_update_entity(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
@@ -112,19 +112,58 @@ def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
     for table in tables:
         clickhouse.drop_table(f"{table}{ch_suffix}")
 
-def test_get_update_interval_empty_tables(postgres:Postgres,clickhouse:ClickHouse):
+
+def test_get_update_interval_empty_tables(postgres: Postgres, clickhouse: ClickHouse):
     Given("empty tables")
-    table_name='impressions_test'
+    table_name = 'impressions_test'
     postgres.drop_table(table_name)
     clickhouse.drop_table(table_name)
-    postgres.create_table_as(table_name,'impressions')
-    clickhouse.create_table_as(table_name,'impressions')
+    postgres.create_table_as(table_name, 'impressions')
+    clickhouse.create_table_as(table_name, 'impressions')
 
     When("compute interval")
-    interval=get_update_interval(postgres,clickhouse,table_name,table_name)
+    interval = get_update_interval(postgres, clickhouse, table_name, table_name)
 
     Then("is expected")
     assert interval is None
+    postgres.drop_table(table_name)
+    clickhouse.drop_table(table_name)
 
 
+def test_get_update_interval_ch_empty(postgres: Postgres, clickhouse: ClickHouse):
+    Given("empty tables")
+    pg_table = 'impressions'
+    ch_table = 'impressions_test'
+    clickhouse.drop_table(ch_table)
+    clickhouse.create_table_as(ch_table, 'impressions')
 
+    When("compute interval")
+    interval = get_update_interval(postgres, clickhouse, pg_table, ch_table)
+
+    Then("is expected")
+    pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_table}")
+    pg_min = pg_r[0][0].date()
+    pg_max = pg_r[0][1].date()
+    assert interval == (pg_min, pg_max)
+    clickhouse.drop_table(ch_table)
+
+
+def test_get_update_interval_ch_nonempty(postgres: Postgres, clickhouse: ClickHouse):
+    Given("empty tables")
+    pg_table = 'impressions'
+    ch_table = 'impressions_test'
+    ch_last_date = datetime.strptime("2025-03-30", "%Y-%m-%d").date()
+    clickhouse.drop_table(ch_table)
+    clickhouse.create_table_as(ch_table, 'impressions')
+    clickhouse.command(f"""
+        INSERT INTO {ch_table} 
+        VALUES (1,1,1,'{ch_last_date}')
+    """)
+
+    When("compute interval")
+    interval = get_update_interval(postgres, clickhouse, pg_table, ch_table)
+
+    Then("is expected")
+    yesterday = (datetime.today() - timedelta(days=1)).date()
+    assert interval == (ch_last_date + timedelta(days=1), yesterday)
+    clickhouse.drop_table(ch_table)

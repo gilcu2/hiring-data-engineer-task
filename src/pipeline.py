@@ -108,7 +108,7 @@ def get_update_interval(postgres:Postgres,clickhouse:ClickHouse,
 
     pg_rows=postgres.query(f"SELECT count(*) FROM {pg_table}")[0][0]
     if pg_rows > 0:
-        pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_rows}")
+        pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_table}")
         pg_min=pg_r[0][0]
         pg_max=pg_r[0][1]
         return pg_min.date(),pg_max.date()
