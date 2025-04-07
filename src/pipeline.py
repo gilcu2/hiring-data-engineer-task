@@ -1,7 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Optional
 
-from postgres import Postgres
+from postgres_spark import PostgresSpark
+from clickhouse_spark import ClickHouseSpark
 from clickhouse import ClickHouse
 from pyspark.sql.functions import from_utc_timestamp, col
 import typer
@@ -10,7 +11,7 @@ from spark import create_spark
 
 
 def update_entity(pg_table_name: str, ch_table_name: str,
-                  postgres: Postgres, clickhouse: ClickHouse,
+                  postgres: PostgresSpark, clickhouse: ClickHouseSpark,
                   limit: Optional[int] = None
                   ) -> int:
     query = f"SELECT * FROM {pg_table_name} LIMIT {limit}" if limit else f"SELECT * FROM {pg_table_name}"
@@ -21,7 +22,7 @@ def update_entity(pg_table_name: str, ch_table_name: str,
 
 def update_kpi(kpi_table_name: str, campaign_table_name: str, ch_table_name: str,
                from_date: date, to_date: date,
-               postgres: Postgres, clickhouse: ClickHouse,
+               postgres: PostgresSpark, clickhouse: ClickHouseSpark,
                limit: Optional[int] = None
                ) -> int:
     query0 = f"""
@@ -45,7 +46,7 @@ def update_kpi(kpi_table_name: str, campaign_table_name: str, ch_table_name: str
 
 def update_clickhouse(
         from_date: date, to_date: date,
-        postgres: Postgres, clickhouse: ClickHouse,
+        postgres: PostgresSpark, clickhouse: ClickHouseSpark,
         ch_suffix: str = "", limit: Optional[int] = None
 ) -> list[int]:
     n_rows_advertiser = update_entity("advertiser", f"advertiser{ch_suffix}",
@@ -73,20 +74,26 @@ def main(
     """
 
     spark = create_spark("postgres to clickhouse update pipeline")
-    postgres = Postgres(spark, pg_url)
-    clickhouse = ClickHouse(spark, ch_url)
+    clickhouse = ClickHouse(ch_url)
+    postgres_spark = PostgresSpark(spark, pg_url)
+    clickhouse_spark = ClickHouseSpark(spark, ch_url, clickhouse)
 
     tables = ["advertiser", "campaign", "clicks", "impressions"]
     for table in tables:
         clickhouse.create_table_as(f"{table}{ch_suffix}", table)
 
-    updated_rows=update_clickhouse(from_date.date(), to_date.date(), postgres, clickhouse, ch_suffix, limit)
+    updated_rows = update_clickhouse(from_date.date(), to_date.date(), postgres_spark, clickhouse_spark, ch_suffix,
+                                     limit)
 
     print("Updated rows")
     for i in range(4):
         print(f"{tables[i]}: {updated_rows[i]}")
 
     return updated_rows
+
+
+def get_needed_update_interval():
+    today = datetime.today()
 
 
 if __name__ == "__main__":

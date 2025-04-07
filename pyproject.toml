@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
+    "apache-airflow>=2.10.5",
     "clickhouse-connect>=0.8.16",
     "psycopg[binary]>=3.2.6",
     "pyspark>=3.5.5",

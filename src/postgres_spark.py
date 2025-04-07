@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 
 
-class Postgres:
+class PostgresSpark:
     def __init__(self, spark: SparkSession, url: str):
         self.url = url
         self.spark = spark
