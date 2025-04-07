@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 def pipeline():
     print("Updating clickhouse from postgres")
 
+
 default_args = {
     'owner': 'airflow',
     'retries': 2,
@@ -14,11 +15,9 @@ default_args = {
 with DAG(
     dag_id='pipeline_task',
     default_args=default_args,
-    description='A simple periodic task',
-    schedule_interval='@daily',  # ⏰ Run once per day
-    start_date=datetime(2024, 1, 1),
-    catchup=False,
-    tags=['example'],
+    description='Updating clickhouse from postgres',
+    schedule_interval='0 6 * * *',
+    tags=['pipeline'],
 ) as dag:
 
     task = PythonOperator(

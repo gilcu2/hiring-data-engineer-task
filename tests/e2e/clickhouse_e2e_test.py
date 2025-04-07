@@ -1,9 +1,5 @@
 from bdd_helper import Given, When, Then, And
 from clickhouse import ClickHouse
-from pyspark.sql import Row
-from pyspark.sql import SparkSession
-from pyspark.testing import assertDataFrameEqual
-from pyspark.sql.types import StructType, StructField, LongType, StringType
 
 create_sql = """
     CREATE TABLE {table_name} (

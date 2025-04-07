@@ -7,11 +7,13 @@ class ClickHouse:
     def __init__(self, url: str):
         parsed = urlparse(url.replace("jdbc:", "", 1))
         parsed_query = parse_qs(parsed.query)
+        dbname = parsed.path.lstrip("/") if parsed.path else "default"
         self.client = clickhouse_connect.get_client(
             host=parsed.hostname or 'localhost',
             port=parsed.port or 8123,
             username=parsed_query.get('user', ['default'])[0],
-            password=parsed_query.get('password', ['12345'])[0]
+            password=parsed_query.get('password', ['12345'])[0],
+            database=dbname
         )
 
     def command(self, sql: str):

@@ -1,5 +1,6 @@
-from pipeline import update_entity, update_kpi, update_clickhouse, main
+from pipeline import update_entity, update_kpi, update_clickhouse, main, get_update_interval
 from clickhouse import ClickHouse
+from postgres import Postgres
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 from bdd_helper import Given, When, Then, And
@@ -110,3 +111,20 @@ def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
 
     for table in tables:
         clickhouse.drop_table(f"{table}{ch_suffix}")
+
+def test_get_update_interval_empty_tables(postgres:Postgres,clickhouse:ClickHouse):
+    Given("empty tables")
+    table_name='impressions_test'
+    postgres.drop_table(table_name)
+    clickhouse.drop_table(table_name)
+    postgres.create_table_as(table_name,'impressions')
+    clickhouse.create_table_as(table_name,'impressions')
+
+    When("compute interval")
+    interval=get_update_interval(postgres,clickhouse,table_name,table_name)
+
+    Then("is expected")
+    assert interval is None
+
+
+

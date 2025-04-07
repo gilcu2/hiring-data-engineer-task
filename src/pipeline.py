@@ -1,9 +1,10 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 from clickhouse import ClickHouse
+from postgres import Postgres
 from pyspark.sql.functions import from_utc_timestamp, col
 import typer
 from typing_extensions import Annotated
@@ -79,8 +80,9 @@ def main(
     clickhouse_spark = ClickHouseSpark(spark, ch_url, clickhouse)
 
     tables = ["advertiser", "campaign", "clicks", "impressions"]
-    for table in tables:
-        clickhouse.create_table_as(f"{table}{ch_suffix}", table)
+    if ch_suffix != "":
+        for table in tables:
+            clickhouse.create_table_as(f"{table}{ch_suffix}", table)
 
     updated_rows = update_clickhouse(from_date.date(), to_date.date(), postgres_spark, clickhouse_spark, ch_suffix,
                                      limit)
@@ -92,8 +94,26 @@ def main(
     return updated_rows
 
 
-def get_needed_update_interval():
-    today = datetime.today()
+def get_update_interval(postgres:Postgres,clickhouse:ClickHouse,
+                        pg_table:str="impressions", ch_table:str="impressions"
+                        ) ->Optional[tuple[date,date]]:
+    yesterday = (datetime.today() - timedelta(days=1)).date()
+    ch_rows= clickhouse.query(f"SELECT count(*) FROM {ch_table}")[0][0]
+    if ch_rows > 0:
+        ch_max = clickhouse.query(f"SELECT MAX(created_at) FROM {ch_table}")[0][0].date()
+        if ch_max<yesterday:
+            return ch_max + timedelta(days=1),yesterday
+        else:
+            return None
+
+    pg_rows=postgres.query(f"SELECT count(*) FROM {pg_table}")[0][0]
+    if pg_rows > 0:
+        pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_rows}")
+        pg_min=pg_r[0][0]
+        pg_max=pg_r[0][1]
+        return pg_min.date(),pg_max.date()
+    else:
+        return None
 
 
 if __name__ == "__main__":

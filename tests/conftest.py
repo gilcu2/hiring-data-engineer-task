@@ -3,11 +3,12 @@ from pyspark.sql import SparkSession
 from typing import Generator
 from spark import create_spark
 from clickhouse import ClickHouse
+from postgres import Postgres
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 
 @pytest.fixture()
-def clickhouse(spark:SparkSession)   -> Generator[ClickHouse, None, None]:
+def clickhouse()   -> Generator[ClickHouse, None, None]:
     host = "localhost"
     port = "8123"
     user = "default"
@@ -15,6 +16,16 @@ def clickhouse(spark:SparkSession)   -> Generator[ClickHouse, None, None]:
     database = "default"
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
     yield ClickHouse(url)
+
+@pytest.fixture()
+def postgres()   -> Generator[ClickHouse, None, None]:
+    host = "localhost"
+    port = "5432"
+    user = "postgres"
+    password = "postgres"
+    database = "postgres"
+    url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
+    yield Postgres(url)
 
 @pytest.fixture()
 def spark() -> Generator[SparkSession, None, None]:
