@@ -9,6 +9,8 @@ from pyspark.sql.functions import from_utc_timestamp, col
 import typer
 from typing_extensions import Annotated
 from spark import create_spark
+from db import Extremes
+
 
 
 def update_entity(pg_table_name: str, ch_table_name: str,
@@ -96,22 +98,18 @@ def main(
 
 def get_update_interval(postgres:Postgres,clickhouse:ClickHouse,
                         pg_table:str="impressions", ch_table:str="impressions"
-                        ) ->Optional[tuple[date,date]]:
+                        ) ->Optional[Extremes[date]]:
     yesterday = (datetime.today() - timedelta(days=1)).date()
-    ch_rows= clickhouse.query(f"SELECT count(*) FROM {ch_table}")[0][0]
-    if ch_rows > 0:
-        ch_max = clickhouse.query(f"SELECT MAX(created_at) FROM {ch_table}")[0][0].date()
-        if ch_max<yesterday:
-            return ch_max + timedelta(days=1),yesterday
+    ch_extremes= clickhouse.get_extremes(ch_table,"created_at")
+    if ch_extremes:
+        if ch_extremes.max_value.date()<yesterday:
+            return Extremes((ch_extremes.max_value + timedelta(days=1)).date(),yesterday)
         else:
             return None
 
-    pg_rows=postgres.query(f"SELECT count(*) FROM {pg_table}")[0][0]
-    if pg_rows > 0:
-        pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_table}")
-        pg_min=pg_r[0][0]
-        pg_max=pg_r[0][1]
-        return pg_min.date(),pg_max.date()
+    pg_extremes= postgres.get_extremes(pg_table,"created_at")
+    if pg_extremes:
+        return Extremes(pg_extremes.min_value.date(),yesterday)
     else:
         return None
 

@@ -1,8 +1,9 @@
 from urllib.parse import urlparse, parse_qs
 import psycopg
+from db import DB
 
 
-class Postgres:
+class Postgres(DB):
     def __init__(self, url: str):
         parsed = urlparse(url.replace("jdbc:", "", 1))
         parsed_query = parse_qs(parsed.query)
@@ -27,8 +28,7 @@ class Postgres:
     def create_table_as(self, new_table_name: str, source_table_name: str):
         self.command(f"CREATE TABLE {new_table_name} AS SELECT * FROM {source_table_name} WHERE FALSE")
 
-    def drop_table(self, table_name: str):
-        self.command(f"DROP TABLE IF EXISTS {table_name} ")
+
 
 
 

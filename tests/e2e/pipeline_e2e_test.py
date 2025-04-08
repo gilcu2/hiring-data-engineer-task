@@ -5,12 +5,14 @@ from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 from bdd_helper import Given, When, Then, And
 from datetime import datetime, timedelta
+from db import Extremes
 
 
 def test_update_entity(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
     Given("tables")
     table_name = "advertiser"
     test_table_name = "advertiser_test"
+    clickhouse.drop_table(test_table_name)
 
     When("update")
     clickhouse.create_table_as(test_table_name, table_name)
@@ -79,7 +81,9 @@ def test_update_clickhouse(postgres_spark: PostgresSpark, clickhouse_spark: Clic
     tables = ["advertiser", "campaign", "clicks", "impressions"]
     test_date = datetime.strptime("2025-03-30", "%Y-%m-%d").date()
     for table in tables:
-        clickhouse.create_table_as(f"{table}{ch_suffix}", table)
+        table_name=f"{table}{ch_suffix}"
+        clickhouse.drop_table(table_name)
+        clickhouse.create_table_as(table_name, table)
 
     When("update")
     updated_rows = update_clickhouse(test_date, test_date, postgres_spark, clickhouse_spark, ch_suffix, limit=10)
@@ -95,9 +99,13 @@ def test_update_clickhouse(postgres_spark: PostgresSpark, clickhouse_spark: Clic
 
 
 def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
-    Given("tables and date")
+    Given("table names and date")
     ch_suffix = "_test"
     tables = ["advertiser", "campaign", "clicks", "impressions"]
+    for table in tables:
+        table_name=f"{table}{ch_suffix}"
+        clickhouse.drop_table(table_name)
+
     test_date = datetime.strptime("2025-03-30", "%Y-%m-%d")
 
     When("update")
@@ -141,10 +149,9 @@ def test_get_update_interval_ch_empty(postgres: Postgres, clickhouse: ClickHouse
     interval = get_update_interval(postgres, clickhouse, pg_table, ch_table)
 
     Then("is expected")
-    pg_r = postgres.query(f"SELECT MIN(created_at),MAX(created_at) FROM {pg_table}")
-    pg_min = pg_r[0][0].date()
-    pg_max = pg_r[0][1].date()
-    assert interval == (pg_min, pg_max)
+    pg_extremes = postgres.get_extremes(pg_table,"created_at")
+    yesterday = (datetime.today() - timedelta(days=1)).date()
+    assert interval == Extremes(pg_extremes.min_value.date(),yesterday)
     clickhouse.drop_table(ch_table)
 
 
@@ -165,5 +172,5 @@ def test_get_update_interval_ch_nonempty(postgres: Postgres, clickhouse: ClickHo
 
     Then("is expected")
     yesterday = (datetime.today() - timedelta(days=1)).date()
-    assert interval == (ch_last_date + timedelta(days=1), yesterday)
+    assert interval == Extremes(ch_last_date + timedelta(days=1), yesterday)
     clickhouse.drop_table(ch_table)
