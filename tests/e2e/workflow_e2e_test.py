@@ -1,4 +1,28 @@
-from workflow import update_flow
+from datetime import datetime
 
-def test_pipeline():
-    assert update_flow(None, None) == 0
+from clickhouse import ClickHouse
+from workflow import update_flow
+from bdd_helper import Given, When, Then, And
+
+def test_workflow(clickhouse: ClickHouse):
+    Given("table names and date")
+    ch_suffix = "_test"
+    tables = ["advertiser", "campaign", "clicks", "impressions"]
+    for table in tables:
+        table_name = f"{table}{ch_suffix}"
+        clickhouse.drop_table(table_name)
+
+    test_date = datetime.strptime("2025-03-30", "%Y-%m-%d")
+
+    When("update")
+    updated_rows = update_flow(test_date, test_date, ch_suffix=ch_suffix, limit=10)
+
+    Then("is expected")
+    updated_rows_arr = [updated_rows.advertiser, updated_rows.campaign, updated_rows.clicks, updated_rows.impressions]
+    for i in range(4):
+        r = clickhouse.query(f"SELECT COUNT(*) FROM {tables[i]}{ch_suffix}")
+        assert r[0][0] > 0
+        assert r[0][0] == updated_rows_arr[i]
+
+    for table in tables:
+        clickhouse.drop_table(f"{table}{ch_suffix}")

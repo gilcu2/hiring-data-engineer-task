@@ -1,4 +1,4 @@
-from pipeline import update_entity, update_kpi, update_clickhouse, main, get_update_interval
+from pipeline import update_entity, update_kpi, update_all, main, get_update_interval
 from clickhouse import ClickHouse
 from postgres import Postgres
 from postgres_spark import PostgresSpark
@@ -75,7 +75,7 @@ def test_update_kpi_from_previous_table(postgres_spark: PostgresSpark, clickhous
     clickhouse.drop_table(test_table)
 
 
-def test_update_clickhouse(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
+def test_update_all(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
     Given("tables and date")
     ch_suffix = "_test"
     tables = ["advertiser", "campaign", "clicks", "impressions"]
@@ -86,13 +86,14 @@ def test_update_clickhouse(postgres_spark: PostgresSpark, clickhouse_spark: Clic
         clickhouse.create_table_as(table_name, table)
 
     When("update")
-    updated_rows = update_clickhouse(test_date, test_date, postgres_spark, clickhouse_spark, ch_suffix, limit=10)
+    updated_rows = update_all(test_date, test_date, postgres_spark, clickhouse_spark, ch_suffix, limit=10)
 
     Then("is expected")
+    updated_rows_arr=[updated_rows.advertiser,updated_rows.campaign,updated_rows.clicks,updated_rows.impressions]
     for i in range(4):
         r = clickhouse.query(f"SELECT COUNT(*) FROM {tables[i]}{ch_suffix}")
         assert r[0][0] > 0
-        assert r[0][0] == updated_rows[i]
+        assert r[0][0] == updated_rows_arr[i]
 
     for table in tables:
         clickhouse.drop_table(f"{table}{ch_suffix}")
@@ -112,10 +113,11 @@ def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
     updated_rows = main(test_date, test_date, ch_suffix=ch_suffix, limit=10)
 
     Then("is expected")
+    updated_rows_arr = [updated_rows.advertiser, updated_rows.campaign, updated_rows.clicks, updated_rows.impressions]
     for i in range(4):
         r = clickhouse.query(f"SELECT COUNT(*) FROM {tables[i]}{ch_suffix}")
         assert r[0][0] > 0
-        assert r[0][0] == updated_rows[i]
+        assert r[0][0] == updated_rows_arr[i]
 
     for table in tables:
         clickhouse.drop_table(f"{table}{ch_suffix}")
