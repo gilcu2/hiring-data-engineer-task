@@ -9,7 +9,31 @@ def test_ctr_campaign():
     path="/ctr_campaign"
 
     When("call")
-    response = client.get(path)
+    response = client.get(path, params={"limit": 10})
+
+    Then("is expected")
+    assert response.status_code == 200
+    result=response.json()
+    assert len(result)>0
+
+def test_daily_impressions():
+    Given("path")
+    path="/daily_impressions"
+
+    When("call")
+    response = client.get(path, params={"limit": 10})
+
+    Then("is expected")
+    assert response.status_code == 200
+    result=response.json()
+    assert len(result)>0
+
+def test_daily_clicks():
+    Given("path")
+    path="/daily_clicks"
+
+    When("call")
+    response = client.get(path, params={"limit": 10})
 
     Then("is expected")
     assert response.status_code == 200

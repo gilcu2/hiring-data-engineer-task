@@ -14,13 +14,19 @@ clickhouse = ClickHouse(ch_url)
 app = FastAPI()
 
 
-# TODO Remove parameters if not implemented
 @app.get("/ctr_campaign/")
-def ctr_campaign(from_date: Optional[date] = None, to_date: Optional[date] = None):
-    sql = """
+def ctr_campaign(limit: Optional[int] = None):
+    sql_limit = f" LIMIT {limit}" if limit else ""
+    sql = f"""
         WITH
-            c AS (SELECT campaign_id,  count() AS total_clicks FROM clicks GROUP BY campaign_id),
-            i AS (SELECT campaign_id, advertiser_id, count() AS total_impressions FROM impressions GROUP BY campaign_id,advertiser_id)
+            c AS (
+                SELECT campaign_id,  count() AS total_clicks 
+                FROM clicks GROUP BY campaign_id {sql_limit}
+            ),
+            i AS (
+                SELECT campaign_id, advertiser_id, count() AS total_impressions 
+                FROM impressions GROUP BY campaign_id,advertiser_id {sql_limit}
+            )
         SELECT
             a.name as advertiser,
             i.advertiser_id,
@@ -34,6 +40,38 @@ def ctr_campaign(from_date: Optional[date] = None, to_date: Optional[date] = Non
         ANY LEFT JOIN advertiser a ON advertiser_id = a.id
         ANY LEFT JOIN campaign  ca ON campaign_id = ca.id
         ORDER BY ctr DESC
+    """
+    r = clickhouse.query(sql)
+    return r
+
+
+@app.get("/daily_impressions/")
+def daily_impressions(limit: Optional[int] = None):
+    sql_limit = f" LIMIT {limit}" if limit else ""
+    sql = f"""
+        SELECT
+            toDate(i.created_at) AS day,
+            count() AS impressions
+        FROM impressions i
+        GROUP BY day
+        ORDER BY day
+        {sql_limit}
+    """
+    r = clickhouse.query(sql)
+    return r
+
+
+@app.get("/daily_clicks/")
+def daily_clicks(limit: Optional[int] = None):
+    sql_limit = f" LIMIT {limit}" if limit else ""
+    sql = f"""
+        SELECT
+            toDate(i.created_at) AS day,
+            count() AS clicks
+        FROM clicks i
+        GROUP BY day
+        ORDER BY day
+        {sql_limit}
     """
     r = clickhouse.query(sql)
     return r
