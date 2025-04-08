@@ -6,6 +6,7 @@ from clickhouse import ClickHouse
 from postgres import Postgres
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
+from prefect.testing.utilities import prefect_test_harness
 
 @pytest.fixture()
 def clickhouse()   -> Generator[ClickHouse, None, None]:
@@ -50,3 +51,8 @@ def clickhouse_spark(spark:SparkSession, clickhouse:ClickHouse)   -> Generator[C
     database = "default"
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
     yield ClickHouseSpark(spark, url,clickhouse)
+
+@pytest.fixture(autouse=True, scope="session")
+def prefect_test_fixture():
+    with prefect_test_harness():
+        yield

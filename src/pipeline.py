@@ -10,6 +10,14 @@ import typer
 from typing_extensions import Annotated
 from spark import create_spark
 from db import Extremes
+from dataclasses import dataclass
+
+@dataclass
+class UpdatedRows:
+    advertiser:int
+    campaign:int
+    clicks:int
+    impressions:int
 
 
 
@@ -49,18 +57,18 @@ def update_kpi(kpi_table_name: str, campaign_table_name: str, ch_table_name: str
 
 def update_clickhouse(
         from_date: date, to_date: date,
-        postgres: PostgresSpark, clickhouse: ClickHouseSpark,
+        postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark,
         ch_suffix: str = "", limit: Optional[int] = None
-) -> list[int]:
+) -> UpdatedRows:
     n_rows_advertiser = update_entity("advertiser", f"advertiser{ch_suffix}",
-                                      postgres, clickhouse, limit)
+                                      postgres_spark, clickhouse_spark, limit)
     n_rows_campaign = update_entity("campaign", f"campaign{ch_suffix}",
-                                    postgres, clickhouse, limit)
+                                    postgres_spark, clickhouse_spark, limit)
     n_rows_clicks = update_kpi("clicks", "campaign", f"clicks{ch_suffix}",
-                               from_date, to_date, postgres, clickhouse, limit)
+                               from_date, to_date, postgres_spark, clickhouse_spark, limit)
     n_rows_impressions = update_kpi("impressions", "campaign", f"impressions{ch_suffix}",
-                                    from_date, to_date, postgres, clickhouse, limit)
-    return [n_rows_advertiser, n_rows_campaign, n_rows_clicks, n_rows_impressions]
+                                    from_date, to_date, postgres_spark, clickhouse_spark, limit)
+    return UpdatedRows(n_rows_advertiser, n_rows_campaign, n_rows_clicks, n_rows_impressions)
 
 
 def main(
@@ -71,7 +79,7 @@ def main(
         limit: Optional[int] = None,
         ch_suffix: str = ""
 
-) -> list[int]:
+) -> UpdatedRows:
     """
         Update the data in ClickHouse from PostgreSQL.
     """
@@ -89,9 +97,7 @@ def main(
     updated_rows = update_clickhouse(from_date.date(), to_date.date(), postgres_spark, clickhouse_spark, ch_suffix,
                                      limit)
 
-    print("Updated rows")
-    for i in range(4):
-        print(f"{tables[i]}: {updated_rows[i]}")
+    print(f"Updated rows: {updated_rows}")
 
     return updated_rows
 
