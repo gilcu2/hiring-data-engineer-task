@@ -12,6 +12,7 @@ dependencies = [
     "psycopg[binary]>=3.2.6",
     "pyspark>=3.5.5",
     "typer>=0.15.2",
+    "clickhouse-migrations>=0.8.1",
 ]
 
 [dependency-groups]
@@ -19,7 +20,6 @@ dev = [
     "python-kacl>=0.6.2",
     "black>=25.1.0",
     "ruff>=0.11.0",
-    "clickhouse-migrations>=0.8.1",
     "pytest>=8.3.5",
     "pytest-mock>=3.14.0",
     "pytest-sugar>=1.0.0",

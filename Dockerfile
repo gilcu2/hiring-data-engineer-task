@@ -13,14 +13,7 @@ RUN uv pip install --system --no-cache-dir .
 
 # Copy the source code
 COPY src ./src
-
-## Create a lean runtime image
-#FROM python:3.12-slim AS runtime
-#
-#WORKDIR /app
-#
-## Copy the installed dependencies from the builder stage
-#COPY --from=builder /app .
+COPY scripts ./scripts
 
 # Set the PYTHONPATH to include the src directory
 ENV PYTHONPATH=src
