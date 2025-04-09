@@ -8,12 +8,14 @@ from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
 from pipeline import update_all, get_update_interval, UpdatedRows, recreate_ch_tables
 from spark import create_spark
+import os
 
+
+ch_url = os.getenv("CH_URL", "jdbc:ch://localhost:8123/default?user=default&password=12345")
+pg_url = os.getenv("PG_URL", "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres")
 
 @flow(log_prints=True)
 def update_flow(from_date: Optional[date] = None, to_date: Optional[date] = None,
-                pg_url: str = "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres",
-                ch_url: str = "jdbc:ch://localhost:8123/default?user=default&password=12345",
                 ch_suffix: str = "", limit: Optional[int] = None) -> UpdatedRows:
     print(f"Begin updating clickhouse from postgres from {from_date} to {to_date}")
     postgres = Postgres(pg_url)

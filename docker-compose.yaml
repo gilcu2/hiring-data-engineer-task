@@ -81,7 +81,7 @@ services:
       - ./migrations/clickhouse:/app/migrations/clickhouse
     environment:
       CH_HOST: "clickhouse"
-    entrypoint: [ "scripts/ch_migrations.sh"]
+    entrypoint: [ "scripts/ch_migrations.sh" ]
 
   tabix:
     image: spoonest/clickhouse-tabix-web-client:latest
@@ -100,7 +100,8 @@ services:
   kpi-service:
     image: pipeline_kpi_etc
     depends_on:
-      - clickhouse
+      clickhouse:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
@@ -109,6 +110,85 @@ services:
       CH_HOST: "clickhouse"
       CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
 
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    volumes:
+      - ./drivers:/opt/spark/jars:ro
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+    ports:
+      - "8080:8080"  # Spark Web UI
+      - "7077:7077"  # Spark Master port
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    volumes:
+      - ./drivers:/opt/spark/jars:ro
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    ports:
+      - "8081:8081"  # Spark Worker UI
+
+# prefecthq/prefect:3.3-python3.11
+
+  prefect-server:
+    image: prefecthq/prefect:3.3-python3.11
+    container_name: prefect-server
+    command: prefect server start --host 0.0.0.0
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+    ports:
+      - "4200:4200"
+    depends_on:
+      - postgres
+    healthcheck:
+      test:   [ "CMD", " python", "-c", "import requests as r;r.get('http://127.0.0.1:4200/api/health').raise_for_status()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  prefect-worker:
+    image: prefecthq/prefect:3.3-python3.11
+    container_name: prefect-worker
+    depends_on:
+      - prefect-server
+#        condition: service_healthy
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+    command: prefect worker start --pool default-agent-pool
+
+  workflow:
+    image: pipeline_kpi_etc
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      spark-master:
+        condition: service_healthy
+    environment:
+      PG_URL: "jdbc:postgresql://postgres:5432/postgres?user=postgres&password=postgres"
+      CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+      PREFECT_API_URL: "http://prefect-api:4200/api"
+    command: python src/workflow.py
+
 volumes:
   postgres_data:
   clickhouse_data:
+
