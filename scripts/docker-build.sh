@@ -1,0 +1,1 @@
+docker build -t pipeline_kpi_etc .

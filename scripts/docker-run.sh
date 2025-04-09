@@ -1,0 +1,1 @@
+docker run -p 8000:8000 -e CH_URL="jdbc:ch://192.168.178.30:8123/default?user=default&password=12345" pipeline_kpi_etc

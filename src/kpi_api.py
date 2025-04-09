@@ -1,6 +1,7 @@
 from typing import Union
 
 from fastapi import FastAPI
+from starlette.responses import RedirectResponse
 from typing_extensions import Annotated, Optional
 import typer
 from datetime import date
@@ -76,11 +77,9 @@ def daily_clicks(limit: Optional[int] = None):
     r = clickhouse.query(sql)
     return r
 
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
+@app.get("/", include_in_schema=False)
+async def docs_redirect():
+    return RedirectResponse(url='/docs')
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host='127.0.0.1', port=8000, reload=True)
+    uvicorn.run("kpi_api:app", host='0.0.0.1', port=8000, reload=True)
