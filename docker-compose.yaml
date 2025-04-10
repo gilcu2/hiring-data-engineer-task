@@ -15,23 +15,39 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 5s
       retries: 5
 
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: pgadmin
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@example.com
-  #     PGADMIN_DEFAULT_PASSWORD: admin
-  #     PGADMIN_CONFIG_SERVER_MODE: "False"
-  #   ports:
-  #     - "5050:80"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #       restart: true
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+
+  # -------------------------------------
+  # Postgres Migrations
+  # -------------------------------------
+  flyway-postgres:
+    image: flyway/flyway
+    container_name: postgres_migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -locations=filesystem:/flyway/postgres migrate
+    volumes:
+      - ./migrations/postgres:/flyway/postgres
+    environment:
+      FLYWAY_CONNECT_RETRIES: 10
 
   # -------------------------------------
   # ClickHouse
@@ -48,27 +64,142 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=12345
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: [ "CMD", "clickhouse-client", "--query", "SELECT 1" ]
       interval: 5s
       retries: 5
 
-  # -------------------------------------
-  # Flyway Migrations
-  # -------------------------------------
-  flyway:
-    image: flyway/flyway
-    container_name: db_migrations
+  clickhouse-migrations:
+    image: gilcu2/pipeline_kpi_etc:latest
     depends_on:
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./migrations/clickhouse:/app/migrations/clickhouse
+    environment:
+      CH_HOST: "clickhouse"
+    entrypoint: [ "scripts/ch_migrations.sh" ]
+
+  tabix:
+    image: spoonest/clickhouse-tabix-web-client:latest
+    ports:
+      - "6060:80"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - CH_NAME=clickhouse
+      - CH_HOST=http://localhost:8123
+      - CH_LOGIN=default
+      - CH_PASSWORD=12345
+
+  kpi-service:
+    image: gilcu2/pipeline_kpi_etc:latest
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./migrations/clickhouse:/app/migrations/clickhouse
+    environment:
+      CH_HOST: "clickhouse"
+      CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
+    command: ["uvicorn", "src.kpi_api:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    volumes:
+      - ./drivers:/opt/spark/jars:ro
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+    ports:
+      - "8080:8080"  # Spark Web UI
+      - "7077:7077"  # Spark Master port
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    volumes:
+      - ./drivers:/opt/spark/jars:ro
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    ports:
+      - "8081:8081"  # Spark Worker UI
+
+# prefecthq/prefect:3.3-python3.11
+
+  prefect-server:
+    image: gilcu2/pipeline_kpi_etc:latest
+    container_name: prefect-server
+    command: prefect server start --host 0.0.0.0
+    environment:
+      - PREFECT_API_URL=http://localhost:4200/api
+    ports:
+      - "4200:4200"
+    depends_on:
+      - postgres
+    healthcheck:
+      test:  ["CMD-SHELL", "bash -c '</dev/tcp/localhost/4200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  prefect-worker:
+    image: gilcu2/pipeline_kpi_etc:latest
+    container_name: prefect-worker
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
       postgres:
         condition: service_healthy
-        restart: true
-    command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -locations=filesystem:/flyway/sql migrate
-    volumes:
-      - ./migrations/:/flyway/sql
+      spark-master:
+        condition: service_healthy
     environment:
-      FLYWAY_CONNECT_RETRIES: 10
+      PG_URL: "jdbc:postgresql://postgres:5432/postgres?user=postgres&password=postgres"
+      CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+      UPDATE_NOW: "True"
+    command: bash -c "prefect work-pool create --overwrite --type process default-pool && python src/workflow.py"
+
+  pipeline-run:
+    image: gilcu2/pipeline_kpi_etc:latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      spark-master:
+        condition: service_healthy
+    environment:
+      PG_URL: "jdbc:postgresql://postgres:5432/postgres?user=postgres&password=postgres"
+      CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
+      SPARK_MASTER_URL: "spark://spark-master:7077"
+    command: python src/pipeline.py
+    profiles:
+      - pipeline-run
 
 volumes:
   postgres_data:
   clickhouse_data:
+

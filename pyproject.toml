@@ -4,11 +4,38 @@ version = "0.1.0"
 description = "RMT Data Engineering Task"
 readme = "README.md"
 requires-python = ">=3.12"
+
 dependencies = [
-    "black>=25.1.0",
+    "clickhouse-connect>=0.8.16",
+    "fastapi>=0.115.12",
+    "prefect>=3.3.3",
     "psycopg[binary]>=3.2.6",
-    "ruff>=0.11.0",
+    "pyspark>=3.5.5",
+    "typer>=0.15.2",
+    "clickhouse-migrations>=0.8.1",
+    "prefect-docker>=0.6.2",
 ]
+
+[dependency-groups]
+dev = [
+    "python-kacl>=0.6.2",
+    "black>=25.1.0",
+    "ruff>=0.11.0",
+    "pytest>=8.3.5",
+    "pytest-mock>=3.14.0",
+    "pytest-sugar>=1.0.0",
+    "pytest-xdist>=3.6.1",
+    "pytest-timeout>=2.3.1",
+    "pytest-cov>=6.1.1",
+    "setuptools>=78.1.0",
+    "pandas>=2.2.3",
+    "pyarrow>=19.0.1",
+    "numpy<2.0.0",
+]
+
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
 
 [tool.black]
 line-length = 100
@@ -17,3 +44,15 @@ target-version = ["py312"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "*_test.py"
+python_functions = "test_*"
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = [
+    "."
+]
+

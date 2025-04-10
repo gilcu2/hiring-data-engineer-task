@@ -1,124 +1,63 @@
-# Data Engineering Task: AdTech Data Pipeline
+# Data Engineering Task: Reynaldo Gil
 
-## Overview
+## Project requirements
 
-You are tasked with developing a data pipeline for an advertising platform. 
-
-The source data is stored in PostgreSQL (operational database) and needs to be transformed and loaded into ClickHouse (analytical database) for efficient reporting and KPI analysis.
-
-## Task Requirements
-
-Your challenge is to:
-
-1. **Design and implement a ClickHouse schema** optimized for analytical queries
-2. **Create a data pipeline** to move data from PostgreSQL to ClickHouse
-   - You can use any approach.
-   - Your solution should be reproducible and well-documented
-3. **Develop queries** to calculate key advertising KPIs
-4. **Document your approach** and any assumptions made
-
-## Prerequisites
-
+- Python 3.12
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * [docker](https://docs.docker.com/engine/install/)
 * [compose](https://docs.docker.com/compose/install/)
 
-## Setup & Environment
+## Setup
 
-This repository provides a complete environment to get started:
+1. uv sync
+1. ./scripts/docker-build.sh
+1. docker-compose up -d
+1. uv run python main.py batch
 
-```bash
-# Install dependencies
-uv sync
+## Checks
 
-# Start all services
-docker-compose up -d
+1. uv run pytest
+2. ruff check
 
-# Wait a bit for services to initialize, then seed data
-uv run python main.py batch
-```
+## ClickHouse Schema
 
-## Data Model
+Available in migrations/clickhouse/1__create_schema.sql. The schema was optimized
+to analytical queries by:
+- Denormalizing the tables impressions and queries.
+  They have additionally the advertiser id to avoid the secondary join between campaign and
+  advertiser
+- Partitioned by day to avoid load the data not related when queries by time range
+- Using the merge tree engine, optimo for append and analytic
 
-The source PostgreSQL database has the following schema:
+The clickhouse server was deployed in the docker-compose. Also the clickhouse migration and 
+tabix client.
 
-- **advertiser**: Information about companies running ad campaigns
-- **campaign**: Ad campaigns configured with bid amounts and budgets  
-- **impressions**: Records of ads being displayed
-- **clicks**: Records of users clicking on ads
+## Data pipeline
 
-Detailed schema information can be found in `migrations/V1__create_schema.sql`.
+The main code in src/pipeline.py. Given that the problem only requires daily updates, 
+needs data modifications, have to be done without cloud access and trying to have scalability 
+the processing was implemented by a custom ETL in PySpark. Real time capabilities are not needed
+so using Kafka is not necessary. Other tools don't allow data transformation or 
+don't have scalability or are not optimal/easier to use for batch processing.
 
-## Data Generation
+Spark server and worker was deployed in docker-compose.
+Monitoring of the spark processing is available in http://localhost:8080/
 
-A data generator is provided to populate the source PostgreSQL database:
+The small tables Advertiser and Campaign are by updated by replace the data because
+we think that doesn't worth doing a more complicated process. Also, we take into account that Clickhouse 
+is not optimo for individual rows updating.
 
-```bash
-# Generate a complete batch of test data
-uv run python main.py batch --advertisers 5 --campaigns 3 --impressions 1000 --ctr 0.08
-# Add a single advertiser
-uv run python main.py advertisers --count 1
-# Add campaigns for an advertiser
-uv run python main.py campaigns --advertiser-id 1 --count 2
-# Add impressions for a campaign
-uv run python main.py impressions --campaign-id 1 --count 500
-# Add clicks for a campaign (based on existing impressions)
-uv run python main.py clicks --campaign-id 1 --ratio 0.12
-# View current data statistics
-uv run python main.py stats
-# Reset all data (use with caution)
-uv run python main.py reset
-```
+The big tables Impressions and Cliks are updated by appending taking advantage of their incremental nature
+and the fact that click house is optimo for appending data.
 
-## Deliverables
+### Pipeline scheduling
 
-Please provide the following:
+The pipeline scheduling was implemented with Prefect. Will run every day at 1 A.M. 
+The flow and deployment are defined in src/workflow.py. Prefect server and worker are deployed 
+too in docker-compose.
+Monitoring of the pipeline is available at http://localhost:4200/
 
-1. **ClickHouse Schema**: SQL scripts to create your analytical tables
-2. **Data Pipeline**: Code and configuration to move data from PostgreSQL to ClickHouse
-3. **KPI Queries**: SQL queries to calculate the following metrics:
-   - Click-Through Rate (CTR) by campaign
-   - Daily impressions and clicks
-   - Anything else you might find itneresting
-4. **Documentation**: A README explaining your design decisions and how to run your solution
+## KPIs
 
-## Evaluation Criteria
-
-Your solution will be evaluated based on:
-
-- **Data modeling**: Appropriate schema design for analytical queries in ClickHouse
-- **Pipeline architecture**: Choice of tools, approach to data synchronization, and handling of updates
-- **Implementation quality**: Reliability, error handling, monitoring, and efficiency
-- **Query performance**: Efficient and accurate KPI calculations in ClickHouse
-- **Documentation**: Clear explanation of your approach, design decisions, and trade-offs
-- **Innovation**: Creative solutions to the data engineering challenges presented
-
-## Technical Requirements
-
-- Your solution should be containerized or have clear setup instructions
-- If using Python code, use Python 3.12+ and include dependency information
-- The pipeline should be able to handle both initial loads and incremental updates
-- All ClickHouse SQL must be compatible with the latest ClickHouse syntax
-- Your approach should consider performance, maintainability, and error handling
-
-## Getting Started
-
-1. Clone this repository
-2. Install dependencies: `uv sync`
-3. Start Docker containers: `docker-compose up -d`
-4. Populate test data: `uv run python main.py batch`
-5. Explore the sample data:
-   - Command line: `uv run python main.py stats`
-   - Web interfaces: pgAdmin and Tabix (see Database Access section)
-6. Design your ClickHouse schema
-7. Implement your ETL pipeline
-8. Develop and test your KPI queries
-9. Document your solution
-
-For local development:
-- View container status: `docker-compose ps`
-- View logs: `docker-compose logs`
-- Reset data: `uv run python main.py reset`
-- Stop services: `docker-compose down`
-
-Good luck!
+The KPIs were implemented in Fastapi. Code and queries are available in src/kpi_api.py. 
+API documentation is available at http://localhost:8000/
