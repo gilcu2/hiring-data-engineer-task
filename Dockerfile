@@ -34,4 +34,4 @@ COPY scripts ./scripts
 ENV PYTHONPATH=src
 
 # Define the command to run your application
-CMD ["uvicorn", "src.kpi_api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "src/pipeline.py"]

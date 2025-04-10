@@ -5,6 +5,7 @@ from db import DB
 
 class Postgres(DB):
     def __init__(self, url: str):
+        print(f"Postgres url: {url}")
         parsed = urlparse(url.replace("jdbc:", "", 1))
         parsed_query = parse_qs(parsed.query)
         dbname=parsed.path.lstrip("/") if parsed.path else "postgres"

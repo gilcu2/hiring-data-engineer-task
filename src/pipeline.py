@@ -11,7 +11,10 @@ from typing_extensions import Annotated
 from spark import create_spark
 from db import Extremes
 from dataclasses import dataclass
+import os
 
+ch_url = os.getenv("CH_URL", "jdbc:ch://localhost:8123/default?user=default&password=12345")
+pg_url = os.getenv("PG_URL", "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres")
 
 @dataclass
 class UpdatedRows:
@@ -99,8 +102,6 @@ def get_update_interval(postgres: Postgres, clickhouse: ClickHouse,
 def main(
         from_date: Annotated[Optional[datetime], typer.Argument(formats=["%Y-%m-%d"])]=None,
         to_date: Annotated[Optional[datetime], typer.Argument(formats=["%Y-%m-%d"])]=None,
-        pg_url: str = "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres",
-        ch_url: str = "jdbc:ch://localhost:8123/default?user=default&password=12345",
         limit: Optional[int] = None,
         ch_suffix: str = ""
 

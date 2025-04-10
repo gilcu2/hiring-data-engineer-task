@@ -7,6 +7,7 @@ from db import DB
 
 class ClickHouse(DB):
     def __init__(self, url: str):
+        print(f"Clickhouse url: {url}")
         parsed = urlparse(url.replace("jdbc:", "", 1))
         parsed_query = parse_qs(parsed.query)
         dbname = parsed.path.lstrip("/") if parsed.path else "default"

@@ -14,6 +14,7 @@ ch_url = os.getenv("CH_URL", "jdbc:ch://localhost:8123/default?user=default&pass
 pg_url = os.getenv("PG_URL", "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres")
 print(f"PREFECT_API_URL: {PREFECT_API_URL.value()}")
 
+
 @flow(log_prints=True)
 def update_flow(from_date: Optional[date] = None, to_date: Optional[date] = None,
                 ch_suffix: str = "", limit: Optional[int] = None) -> UpdatedRows:
@@ -38,6 +39,7 @@ def update_flow(from_date: Optional[date] = None, to_date: Optional[date] = None
         print(f"Nothing to update, from_date: {from_date} > to_date: {to_date}")
         return UpdatedRows(0, 0, 0, 0)
 
+    print(f"Begin updating clickhouse from postgres from {from_date} to {to_date}")
     spark = create_spark("postgres to clickhouse update pipeline")
     postgres_spark = PostgresSpark(spark, pg_url)
     clickhouse_spark = ClickHouseSpark(spark, ch_url, clickhouse)
@@ -61,13 +63,16 @@ def main(from_date: Optional[date] = None, to_date: Optional[date] = None,
     update_now = get_bool_env("UPDATE_NOW", False)
     update_cron = get_bool_env("UPDATE_CRON", True)
     if update_cron:
-        update_flow.deploy(name=f"update-flow-deployment{suffix}", cron=cron,
-                           work_pool_name="default-agent-pool",
-                          parameters=dict(ch_suffix=suffix, limit=limit),
-                           concurrency_limit=1
-                           )
+        update_flow.serve(
+            name=f"update-flow-deployment{suffix}",
+            cron=cron,
+            parameters=dict(ch_suffix=suffix, limit=limit),
+        )
     if update_now:
-        update_flow(ch_suffix=suffix, limit=limit)
+        update_flow.serve(
+            name=f"update-flow-deployment{suffix}",
+            parameters=dict(ch_suffix=suffix, limit=limit),
+        )
 
 
 if __name__ == "__main__":

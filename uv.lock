@@ -419,8 +419,10 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "clickhouse-connect" },
+    { name = "clickhouse-migrations" },
     { name = "fastapi" },
     { name = "prefect" },
+    { name = "prefect-docker" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyspark" },
     { name = "typer" },
@@ -429,7 +431,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
-    { name = "clickhouse-migrations" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
@@ -447,8 +448,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "clickhouse-connect", specifier = ">=0.8.16" },
+    { name = "clickhouse-migrations", specifier = ">=0.8.1" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "prefect", specifier = ">=3.3.3" },
+    { name = "prefect-docker", specifier = ">=0.6.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.6" },
     { name = "pyspark", specifier = ">=3.5.5" },
     { name = "typer", specifier = ">=0.15.2" },
@@ -457,7 +460,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.1.0" },
-    { name = "clickhouse-migrations", specifier = ">=0.8.1" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pyarrow", specifier = ">=19.0.1" },
@@ -1225,6 +1227,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/15/91/3a2cfa8e3a04073d1c03f337b9e2a1924d76fc213d9eb3bf04a0bace6433/prefect-3.3.3.tar.gz", hash = "sha256:e1c268383ef0766c0bfb9e95321d3526acf20baf35ec59cbadb21fd1875acff8", size = 5489486 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/18/aa25a50ddd50819c907d8b0256b6fd4892058b98adc000dfa1dd47a547c4/prefect-3.3.3-py3-none-any.whl", hash = "sha256:2aa93b87a8d124576497654f7eac00f84c2a0e6edee6825a344b689e604553bf", size = 5978150 },
+]
+
+[[package]]
+name = "prefect-docker"
+version = "0.6.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docker" },
+    { name = "exceptiongroup" },
+    { name = "prefect" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/77/fc/fcf64753a7b6373ad31669f0c0df928d51f8edbd3a6b56adbd1799153acf/prefect_docker-0.6.2.tar.gz", hash = "sha256:405cdf2b266c7e1ffcb61f5b80c710401bc2eb5f25dcbccc195b0e5c86f5a421", size = 33777 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/55/6f81b38f6190779904d02179a5589d5d5b84c7167fbd8d7c5827dd584083/prefect_docker-0.6.2-py3-none-any.whl", hash = "sha256:bae500ff0c18e3e1c55f2e79ec154bc1f8c8329fbe6a3726052dfb0fe38d7d4c", size = 23661 },
 ]
 
 [[package]]

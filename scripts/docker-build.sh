@@ -1,1 +1,1 @@
-docker build -t pipeline_kpi_etc .
+docker build -t gilcu2/pipeline_kpi_etc:latest .
