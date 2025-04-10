@@ -52,7 +52,7 @@ def clickhouse_spark(spark:SparkSession, clickhouse:ClickHouse)   -> Generator[C
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
     yield ClickHouseSpark(spark, url,clickhouse)
 
-@pytest.fixture(autouse=True, scope="session")
-def prefect_test_fixture():
-    with prefect_test_harness():
-        yield
+# @pytest.fixture(scope="session")
+# def prefect():
+#     with prefect_test_harness():
+#         yield

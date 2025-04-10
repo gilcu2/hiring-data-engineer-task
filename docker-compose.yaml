@@ -123,7 +123,7 @@ services:
       - "8080:8080"  # Spark Web UI
       - "7077:7077"  # Spark Master port
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -148,13 +148,13 @@ services:
     container_name: prefect-server
     command: prefect server start --host 0.0.0.0
     environment:
-      - PREFECT_API_URL=http://prefect-server:4200/api
+      - PREFECT_API_URL=http://localhost:4200/api
     ports:
       - "4200:4200"
     depends_on:
       - postgres
     healthcheck:
-      test:   [ "CMD", " python", "-c", "import requests as r;r.get('http://127.0.0.1:4200/api/health').raise_for_status()"]
+      test:  ["CMD-SHELL", "bash -c '</dev/tcp/localhost/4200'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -164,8 +164,8 @@ services:
     image: prefecthq/prefect:3.3-python3.11
     container_name: prefect-worker
     depends_on:
-      - prefect-server
-#        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
     environment:
       - PREFECT_API_URL=http://prefect-server:4200/api
     command: prefect worker start --pool default-agent-pool
@@ -185,7 +185,7 @@ services:
       PG_URL: "jdbc:postgresql://postgres:5432/postgres?user=postgres&password=postgres"
       CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
       SPARK_MASTER_URL: "spark://spark-master:7077"
-      PREFECT_API_URL: "http://prefect-api:4200/api"
+      PREFECT_API_URL: "http://prefect-server:4200/api"
     command: python src/workflow.py
 
 volumes:
