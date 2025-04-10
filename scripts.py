@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Command line scripts for the data-task project."""
 
-import os
-import sys
 import time
 import subprocess
 import argparse

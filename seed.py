@@ -1,7 +1,6 @@
 import psycopg
 import os
 import random
-import datetime
 from datetime import date, timedelta, datetime
 
 POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "localhost")

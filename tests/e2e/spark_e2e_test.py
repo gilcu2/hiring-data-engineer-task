@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 
-from bdd_helper import Given, When, Then, And
+from bdd_helper import Given, Then
 
 
 def test_create_spark(spark:SparkSession):

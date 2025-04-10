@@ -73,7 +73,7 @@ services:
       retries: 5
 
   clickhouse-migrations:
-    image: pipeline_kpi_etc
+    image: gilcu2/pipeline_kpi_etc:latest
     depends_on:
       clickhouse:
         condition: service_healthy

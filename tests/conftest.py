@@ -6,10 +6,10 @@ from clickhouse import ClickHouse
 from postgres import Postgres
 from postgres_spark import PostgresSpark
 from clickhouse_spark import ClickHouseSpark
-from prefect.testing.utilities import prefect_test_harness
+
 
 @pytest.fixture()
-def clickhouse()   -> Generator[ClickHouse, None, None]:
+def clickhouse() -> Generator[ClickHouse, None, None]:
     host = "localhost"
     port = "8123"
     user = "default"
@@ -18,8 +18,9 @@ def clickhouse()   -> Generator[ClickHouse, None, None]:
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
     yield ClickHouse(url)
 
+
 @pytest.fixture()
-def postgres()   -> Generator[ClickHouse, None, None]:
+def postgres() -> Generator[Postgres, None, None]:
     host = "localhost"
     port = "5432"
     user = "postgres"
@@ -28,12 +29,14 @@ def postgres()   -> Generator[ClickHouse, None, None]:
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
     yield Postgres(url)
 
+
 @pytest.fixture()
 def spark() -> Generator[SparkSession, None, None]:
     yield create_spark("test_spark_session")
 
+
 @pytest.fixture()
-def postgres_spark(spark:SparkSession)   -> Generator[PostgresSpark, None, None]:
+def postgres_spark(spark: SparkSession) -> Generator[PostgresSpark, None, None]:
     host = "localhost"
     port = "5432"
     user = "postgres"
@@ -42,17 +45,13 @@ def postgres_spark(spark:SparkSession)   -> Generator[PostgresSpark, None, None]
     url = f"jdbc:postgresql://{host}:{port}/{database}?user={user}&password={password}"
     yield PostgresSpark(spark, url)
 
+
 @pytest.fixture()
-def clickhouse_spark(spark:SparkSession, clickhouse:ClickHouse)   -> Generator[ClickHouseSpark, None, None]:
+def clickhouse_spark(spark: SparkSession, clickhouse: ClickHouse) -> Generator[ClickHouseSpark, None, None]:
     host = "localhost"
     port = "8123"
     user = "default"
     password = "12345"
     database = "default"
     url = f"jdbc:ch://{host}:{port}/{database}?user={user}&password={password}"
-    yield ClickHouseSpark(spark, url,clickhouse)
-
-# @pytest.fixture(scope="session")
-# def prefect():
-#     with prefect_test_harness():
-#         yield
+    yield ClickHouseSpark(spark, url, clickhouse)

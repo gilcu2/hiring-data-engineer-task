@@ -1,10 +1,6 @@
-from typing import Union
-
 from fastapi import FastAPI
 from starlette.responses import RedirectResponse
-from typing_extensions import Annotated, Optional
-import typer
-from datetime import date
+from typing_extensions import Optional
 from clickhouse import ClickHouse
 import uvicorn
 import os

@@ -1,4 +1,4 @@
-from bdd_helper import Given, When, Then, And
+from bdd_helper import Given, When, Then
 from postgres_spark import PostgresSpark
 
 

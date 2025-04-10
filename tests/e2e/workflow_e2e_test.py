@@ -1,15 +1,12 @@
 import os
 from datetime import datetime
-import time
-import asyncio
 
 os.environ["PREFECT_API_URL"] = "http://localhost:4200/api"
 
 from clickhouse import ClickHouse
-from workflow import update_flow, main
+from workflow import update_flow
 from bdd_helper import Given, When, Then
-from prefect.cli.deployment import delete as delete_deployment
-import pytest
+
 
 RUN_LONG_TESTS = os.getenv("RUN_LONG_TESTS", "false").lower() == "true"
 
@@ -36,5 +33,3 @@ def test_workflow(clickhouse: ClickHouse):
 
     for table in tables:
         clickhouse.drop_table(f"{table}{ch_suffix}")
-
-

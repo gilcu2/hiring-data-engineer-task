@@ -1,4 +1,4 @@
-from bdd_helper import Given, When, Then, And
+from bdd_helper import Given, When, Then
 from fastapi.testclient import TestClient
 from kpi_api import app
 
