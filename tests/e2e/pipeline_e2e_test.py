@@ -75,11 +75,12 @@ def test_update_kpi_from_previous_table(postgres_spark: PostgresSpark, clickhous
     clickhouse.drop_table(test_table)
 
 
-def test_update_all(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
+def test_update_all(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseSpark,
+                    clickhouse: ClickHouse, postgres:Postgres):
     Given("tables and date")
     ch_suffix = "_test"
     tables = ["advertiser", "campaign", "clicks", "impressions"]
-    test_date = datetime.today()-timedelta(days=1)
+    test_date = postgres.get_extremes("impressions", "created_at").min_value.date()
     for table in tables:
         table_name=f"{table}{ch_suffix}"
         clickhouse.drop_table(table_name)
@@ -99,7 +100,7 @@ def test_update_all(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseS
         clickhouse.drop_table(f"{table}{ch_suffix}")
 
 
-def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
+def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse,postgres:Postgres):
     Given("table names and date")
     ch_suffix = "_test"
     tables = ["advertiser", "campaign", "clicks", "impressions"]
@@ -107,7 +108,7 @@ def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
         table_name=f"{table}{ch_suffix}"
         clickhouse.drop_table(table_name)
 
-    test_date = datetime.today()-timedelta(days=1)
+    test_date = postgres.get_extremes("impressions", "created_at").min_value
 
     When("update")
     updated_rows = main(test_date, test_date, ch_suffix=ch_suffix, limit=10)
