@@ -29,6 +29,8 @@
 
 ## Checks
 
+The tests require the servers ready and Postgres populated with data
+
 1. uv run pytest
 2. uv run ruff check
 
