@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 os.environ["PREFECT_API_URL"] = "http://localhost:4200/api"
 
@@ -19,7 +19,7 @@ def test_workflow(clickhouse: ClickHouse):
         table_name = f"{table}{ch_suffix}"
         clickhouse.drop_table(table_name)
 
-    test_date = datetime.strptime("2025-03-30", "%Y-%m-%d")
+    test_date = datetime.today()-timedelta(days=1)
 
     When("update")
     updated_rows = update_flow(test_date, test_date, ch_suffix=ch_suffix, limit=10)

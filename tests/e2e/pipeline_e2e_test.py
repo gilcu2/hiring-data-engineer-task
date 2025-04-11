@@ -79,7 +79,7 @@ def test_update_all(postgres_spark: PostgresSpark, clickhouse_spark: ClickHouseS
     Given("tables and date")
     ch_suffix = "_test"
     tables = ["advertiser", "campaign", "clicks", "impressions"]
-    test_date = datetime.strptime("2025-03-30", "%Y-%m-%d").date()
+    test_date = datetime.today()-timedelta(days=1)
     for table in tables:
         table_name=f"{table}{ch_suffix}"
         clickhouse.drop_table(table_name)
@@ -107,7 +107,7 @@ def test_main(clickhouse_spark: ClickHouseSpark, clickhouse: ClickHouse):
         table_name=f"{table}{ch_suffix}"
         clickhouse.drop_table(table_name)
 
-    test_date = datetime.strptime("2025-03-30", "%Y-%m-%d")
+    test_date = datetime.today()-timedelta(days=1)
 
     When("update")
     updated_rows = main(test_date, test_date, ch_suffix=ch_suffix, limit=10)
