@@ -63,12 +63,14 @@ def main(from_date: Optional[date] = None, to_date: Optional[date] = None,
     update_now = get_bool_env("UPDATE_NOW", False)
     update_cron = get_bool_env("UPDATE_CRON", True)
     if update_cron:
+        print("Beginning serving workflow with cron deployment")
         update_flow.serve(
             name=f"update-flow-deployment{suffix}",
             cron=cron,
             parameters=dict(ch_suffix=suffix, limit=limit),
         )
     if update_now:
+        print("Beginning serving workflow")
         update_flow.serve(
             name=f"update-flow-deployment{suffix}",
             parameters=dict(ch_suffix=suffix, limit=limit),

@@ -109,7 +109,7 @@ services:
     environment:
       CH_HOST: "clickhouse"
       CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
-    command: ["uvicorn", "src.kpi_api:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: [ "uvicorn", "src.kpi_api:app", "--host", "0.0.0.0", "--port", "8000" ]
 
   spark-master:
     image: bitnami/spark:latest
@@ -123,7 +123,7 @@ services:
       - "8080:8080"  # Spark Web UI
       - "7077:7077"  # Spark Master port
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -141,7 +141,7 @@ services:
     ports:
       - "8081:8081"  # Spark Worker UI
 
-# prefecthq/prefect:3.3-python3.11
+  # prefecthq/prefect:3.3-python3.11
 
   prefect-server:
     image: gilcu2/pipeline_kpi_etc:latest
@@ -154,15 +154,14 @@ services:
     depends_on:
       - postgres
     healthcheck:
-      test:  ["CMD-SHELL", "bash -c '</dev/tcp/localhost/4200'"]
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/localhost/4200'" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
 
-  prefect-worker:
+  flow-deploy:
     image: gilcu2/pipeline_kpi_etc:latest
-    container_name: prefect-worker
     depends_on:
       prefect-server:
         condition: service_healthy
@@ -177,8 +176,34 @@ services:
       CH_URL: "jdbc:ch://clickhouse:8123/default?user=default&password=12345"
       SPARK_MASTER_URL: "spark://spark-master:7077"
       PREFECT_API_URL: "http://prefect-server:4200/api"
-      UPDATE_NOW: "True"
+      UPDATE_NOW: "false"
+      UPDATE_CRON: "true"
     command: bash -c "prefect work-pool create --overwrite --type process default-pool && python src/workflow.py"
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c '</dev/tcp/prefect-server/4200'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  flow-run:
+    image: gilcu2/pipeline_kpi_etc:latest
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      spark-master:
+        condition: service_healthy
+      flow-deploy:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+    command: prefect deployment run 'update-flow/update-flow-deployment'
+    profiles:
+      - flow-run
 
   pipeline-run:
     image: gilcu2/pipeline_kpi_etc:latest

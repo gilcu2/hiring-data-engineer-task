@@ -11,8 +11,21 @@
 
 1. uv sync
 1. ./scripts/docker-build.sh
-1. docker-compose up -d
+1. docker-compose up
+   
+   Start all services, run both migrations, deploy update workflow and its daily cron.
+   Wait  until flow-deploy logs "Your flow 'update-flow' is being served"
+   Must be ready:
+   - Prefect: http://localhost:4200/dashboard
+   - Spark: http://localhost:8080/
+   - KPIs: http://localhost:8000/docs
 1. uv run python main.py batch
+   
+   Populate Postgres data
+1. docker-compose up flow-run
+   Run one flow. Check in prefect runs
+
+
 
 ## Checks
 
