@@ -59,7 +59,7 @@ def get_bool_env(var_name, default=True):
 
 def main(from_date: Optional[date] = None, to_date: Optional[date] = None,
          suffix: str = "", limit: Optional[int] = None):
-    cron = os.getenv("UPDATE_CRONTAB", "* 1 * * *")
+    cron = os.getenv("UPDATE_CRONTAB", "0 1 * * *")
     update_now = get_bool_env("UPDATE_NOW", False)
     update_cron = get_bool_env("UPDATE_CRON", True)
     if update_cron:
