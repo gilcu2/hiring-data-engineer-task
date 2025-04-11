@@ -2,7 +2,7 @@
 
 ## Project requirements
 
-- Python 3.12
+* Python 3.12
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * [docker](https://docs.docker.com/engine/install/)
 * [compose](https://docs.docker.com/compose/install/)
@@ -17,7 +17,7 @@
 ## Checks
 
 1. uv run pytest
-2. ruff check
+2. uv run ruff check
 
 ## ClickHouse Schema
 
